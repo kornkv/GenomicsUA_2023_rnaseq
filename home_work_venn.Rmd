@@ -1,0 +1,123 @@
+---
+title: "home_work_week2"
+author: "KN"
+date: "2023-10-10"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/home/kate/Genomics_UA/2023_rnaseq_course-1/week2')
+setwd("/home/kate/Genomics_UA/2023_rnaseq_course-1/week2")
+```
+
+
+```{r}
+count_matrix_filtered <- read.csv("03_outputs/01_count_matrix_filtered.csv", row.names = 1)
+metadata_table <- read.csv("01_datasets/metadata.csv", row.names = 1)
+metadata_table$line_trt <- as.factor(paste(metadata_table$fibroblast_line,metadata_table$treatment, sep="_"))
+genes_mapped <- read.csv("03_outputs/01_gene_names_mapped.csv")
+#install.packages("ggvenn")
+#library(ggvenn)
+```
+
+```{r}
+metadata_table$line_trt <- as.factor(tolower(paste(metadata_table$fibroblast_line,metadata_table$treatment, sep="_")))
+
+dds_t <- DESeqDataSetFromMatrix(countData = count_matrix_filtered, colData = metadata_table, 
+                              design = ~line_trt)
+
+dds_t <- DESeq(dds_t)
+
+resultsNames(dds_lt)
+resultsNames(dds_t)
+
+#line A
+a_res_adapalen_dmso <- lfcShrink(dds_t, type = "ashr", contrast = c("line_trt", "a_adapalene", "a_dmso"), svalue = TRUE) %>% as.data.frame() %>% tibble::rownames_to_column("gene")
+a_res_tazarotene_dmso <- lfcShrink(dds_t, type = "ashr", contrast = c("line_trt", "a_tazarotene", "a_dmso"), svalue = TRUE) %>% as.data.frame() %>% tibble::rownames_to_column("gene")
+
+a_res_adapalen_dmso_up <- a_res_adapalen_dmso %>% filter(svalue < 0.01 & log2FoldChange > 1.5)
+a_res_adapalen_dmso_down <- a_res_adapalen_dmso %>% filter(svalue < 0.01 & log2FoldChange < -1.5)
+
+a_res_tazarotene_dmso_up <- a_res_tazarotene_dmso %>% filter(svalue < 0.01 & log2FoldChange > 1.5)
+a_res_tazarotene_dmso_down <- a_res_tazarotene_dmso %>% filter(svalue < 0.01 & log2FoldChange < -1.5)
+
+venn_list_a <- list("line_a_adapalen_down" = a_res_adapalen_dmso_down$gene,
+                    "line_a_adapalen_up" = a_res_adapalen_dmso_up$gene,
+                  
+                  "line_a_tazarotene_up" = a_res_tazarotene_dmso_up$gene,
+                  "line_a_tazarotene_down" = a_res_tazarotene_dmso_down$gene)
+
+venn_a <- ggvenn(venn_list_a, set_name_size=3.5)
+
+pdf("venn_a.pdf")
+ggvenn(venn_list_a, set_name_size=3.5) 
+dev.off()
+
+jpeg("venn_a.jpeg", quality=100)
+ggvenn(venn_list_a, set_name_size=3.5) 
+dev.off()
+
+#line B
+b_res_adapalen_dmso <- lfcShrink(dds_t, type = "ashr", contrast = c("line_trt", "b_adapalene", "b_dmso"), svalue = TRUE) %>% as.data.frame() %>% tibble::rownames_to_column("gene")
+b_res_tazarotene_dmso <- lfcShrink(dds_t, type = "ashr", contrast = c("line_trt", "b_tazarotene", "b_dmso"), svalue = TRUE) %>% as.data.frame() %>% tibble::rownames_to_column("gene")
+
+b_res_adapalen_dmso_up <- b_res_adapalen_dmso %>% filter(svalue < 0.01 & log2FoldChange > 1.5)
+b_res_adapalen_dmso_down <- b_res_adapalen_dmso %>% filter(svalue < 0.01 & log2FoldChange < -1.5)
+
+b_res_tazarotene_dmso_up <- b_res_tazarotene_dmso %>% filter(svalue < 0.01 & log2FoldChange > 1.5)
+b_res_tazarotene_dmso_down <- b_res_tazarotene_dmso %>% filter(svalue < 0.01 & log2FoldChange < -1.5)
+
+venn_list_b <- list("line_b_adapalen_down" = b_res_adapalen_dmso_down$gene,
+                    "line_b_adapalen_up" = b_res_adapalen_dmso_up$gene,
+                  
+                  "line_b_tazarotene_up" = b_res_tazarotene_dmso_up$gene,
+                  "line_b_tazarotene_down" = b_res_tazarotene_dmso_down$gene)
+
+venn_b <- ggvenn(venn_list_b, set_name_size=3.5)  
+
+pdf("venn_b.pdf")
+ggvenn(venn_list_b, set_name_size=3.5) 
+dev.off()  
+
+jpeg("venn_b.jpeg", quality=100)
+ggvenn(venn_list_b, set_name_size=3.5) 
+dev.off()  
+
+#line C  
+
+c_res_adapalen_dmso <- lfcShrink(dds_t, type = "ashr", contrast = c("line_trt", "c_adapalene", "c_dmso"), svalue = TRUE) %>% as.data.frame() %>% tibble::rownames_to_column("gene")
+c_res_tazarotene_dmso <- lfcShrink(dds_t, type = "ashr", contrast = c("line_trt", "c_tazarotene", "c_dmso"), svalue = TRUE) %>% as.data.frame() %>% tibble::rownames_to_column("gene")
+
+c_res_adapalen_dmso_up <- c_res_adapalen_dmso %>% filter(svalue < 0.01 & log2FoldChange > 1.5)
+c_res_adapalen_dmso_down <- c_res_adapalen_dmso %>% filter(svalue < 0.01 & log2FoldChange < -1.5)
+
+c_res_tazarotene_dmso_up <- c_res_tazarotene_dmso %>% filter(svalue < 0.01 & log2FoldChange > 1.5)
+c_res_tazarotene_dmso_down <- c_res_tazarotene_dmso %>% filter(svalue < 0.01 & log2FoldChange < -1.5)
+
+venn_list_c <- list("line_c_adapalen_down" = c_res_adapalen_dmso_down$gene,
+                    "line_c_adapalen_up" = c_res_adapalen_dmso_up$gene,
+                  
+                  "line_c_tazarotene_up" = c_res_tazarotene_dmso_up$gene,
+                  "line_c_tazarotene_down" = c_res_tazarotene_dmso_down$gene)
+
+venn_c <- ggvenn(venn_list_c, set_name_size=3.5) 
+
+pdf("venn_c.pdf")
+ggvenn(venn_list_c, set_name_size=3.5) 
+dev.off()
+
+jpeg("venn_c.jpeg", quality=100)
+ggvenn(venn_list_c, set_name_size=3.5) 
+dev.off()
+
+```
+
+```{r}
+```
+
+
+```{r}
+
+```
