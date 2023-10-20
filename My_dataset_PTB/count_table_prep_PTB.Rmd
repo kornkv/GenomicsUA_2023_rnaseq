@@ -59,29 +59,15 @@ biomart_list <- getBM(filter="ensembl_transcript_id",
                       attributes = c("ensembl_transcript_id", "mgi_symbol","transcript_biotype",
                                      "description"),
                       values = counts$ensembl_tr_id, mart = ensembl)
+biomart_list <- subset(biomart_list, !is.na(mgi_symbol) & mgi_symbol != "")
 
+unique(biomart_list$transcript_biotype)
+
+counts_filtered <- counts %>% filter(ensembl_tr_id %in% biomart_list$ensembl_transcript_id)
 ```
 
 ```{r}
-
-
-#tx2gene <- getBM(attributes = c("ensembl_transcript_id", "ensembl_gene_id"), mart = mart)
-
-#count_matrix_t <- read.table("./counts.tsv", header = TRUE, row.names = 1)
-
-#gene_counts <- summarizeToGene(count_matrix, tx2gene = tx2gene, ignoreTxVersion = TRUE)
-
-#gene_counts <- count_matrix %>% group_by(ensembl_transcript_id) %>%  summarise(across(everything(), sum))
-
-unique(count_matrix)
+write.csv(counts_filtered, "outputs/counts_filtered.csv", row.names = FALSE)
+write.csv(biomart_list, "outputs/biomart_list.csv", row.names = FALSE)
 ```
 
-
-
-
-
-```{r, eval = TRUE}
-save(list = ls(all.names = TRUE), file = "./count_table_prep.RData", envir = environment())
-
-
-```
