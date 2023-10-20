@@ -21,7 +21,8 @@ library(tximport)
 
 ```{r}
 
-#upload metadata and count_table
+#upload metadata and count_table(same as txi$counts, but different way - just for practice)
+
 metadata_table <- read.csv("ptb_metadata_table.csv")
 counts_tsv <- "./counts_ptb.tsv"
 if (file.exists(counts_tsv)){
@@ -48,6 +49,8 @@ counts %>%unique()
 
 
 ```{r}
+#Annotation
+
 #remove info after dot (remove version of transcropt ID)
 counts$ensembl_tr_id <- gsub("\\.\\d+$", "", counts$ensembl_tr_id)
 
@@ -57,7 +60,7 @@ listAttributes(ensembl)
 
 biomart_list <- getBM(filter="ensembl_transcript_id",
                       attributes = c("ensembl_transcript_id", "mgi_symbol","transcript_biotype",
-                                     "description"),
+                                     "description" , "ensembl_gene_id"),
                       values = counts$ensembl_tr_id, mart = ensembl)
 biomart_list <- subset(biomart_list, !is.na(mgi_symbol) & mgi_symbol != "")
 

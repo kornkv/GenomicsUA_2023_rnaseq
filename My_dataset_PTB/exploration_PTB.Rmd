@@ -1,0 +1,87 @@
+---
+title: "Exploration_PTB"
+author: "KN"
+date: "2023-10-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/home/kate/github/GenomicsUA_2023_rnaseq/My_dataset_PTB")
+setwd("/home/kate/github/GenomicsUA_2023_rnaseq/My_dataset_PTB")
+```
+
+```{r load-libraries-and-files}
+library(PCAtools)
+library(pheatmap)
+library(DESeq2)
+library(tidyverse)
+library(tximport)
+library(TxDb.Mmusculus.UCSC.mm10.knownGene)
+
+count_matrix <- read.csv("counts_ptb.tsv", row.names = 1)
+count_matrix_filtered <- read.csv("outputs/counts_filtered.csv", row.names = 1)
+metadata_table <- read.csv("ptb_metadata_table.csv", row.names = 1)
+biomart_list <- read.csv("outputs/biomart_list.csv")
+```
+
+```{r pca-raw}
+pca_calculated <- pca(count_matrix_filtered, metadata = metadata_table, removeVar = 0.1)
+biplot(pca_calculated, colby = "time", legendPosition = "right", lab = NULL)
+```
+
+```{r normalization}
+samples <- read.table(file.path("/home/kate/github/GenomicsUA_2023_rnaseq/My_dataset_PTB","SraRunTable.txt"), header=TRUE, sep = ",")
+files <- list.files("/home/kate/github/GenomicsUA_2023_rnaseq/My_dataset_PTB/geo_inp", full.names = TRUE)
+names(files) <- samples$GEO_Accession..exp.
+all(file.exists(files))
+
+txdb_mouse <- TxDb.Mmusculus.UCSC.mm10.knownGene
+k_mouse <- keys(txdb_mouse, keytype = "TXNAME")
+tx2gene_mouse <- select(txdb_mouse, k_mouse, "GENEID", "TXNAME") #only 33 lines
+head(tx2gene_mouse)
+
+#custom tx2gene
+tx2gene_mouse_c <- dplyr::select(as.data.frame(biomart_list), TXNAME = ensembl_transcript_id, GENEID = ensembl_gene_id)
+head(tx2gene_mouse_c) #much better
+
+txi <- tximport(files, type = "salmon", tx2gene = tx2gene_mouse_c, ignoreTxVersion=T)
+names(txi)
+head(txi$counts)
+class(metadata_table)
+rownames(metadata_table) == colnames(txi$counts)
+
+metadata_table$replicate <- as.factor(c("A","B","A","B","A","B","A","B","A","B","A","B"))
+metadata_table$time <-  as.factor(metadata_table$time)
+
+dds <- DESeqDataSetFromTximport(txi, metadata_table , ~1)
+
+vsd <- vst(dds, blind = TRUE)
+
+counts_vst_filtered <- assay(vsd) %>% as.data.frame()
+
+counts_vst_filtered
+
+pca_calculated <- pca(counts_vst_filtered, metadata = metadata_table, removeVar = 0.1)
+
+biplot(pca_calculated, colby = "genotype", legendPosition = "right", lab = NULL)
+biplot(pca_calculated, colby = "brain_part", legendPosition = "right", lab = NULL)
+biplot(pca_calculated, colby = "time", legendPosition = "right", lab = NULL)
+biplot(pca_calculated, colby = "replicate", legendPosition = "right", lab = NULL)
+
+
+```
+
+```{r}
+
+pairsplot(pca_calculated, colby = "time")
+plotloadings(pca_calculated, components = getComponents(pca_calculated,
+             c(1, 2, 5)), rangeRetain = 0.1, drawConnectors = TRUE)
+
+matrix_correlations <- cor(counts_vst_filtered)
+
+clustering <- pheatmap(matrix_correlations, annotation = metadata_table, show_rownames = TRUE,
+         show_colnames = FALSE)
+ggsave("outputs/clustering.pdf", clustering, device = "pdf", width = 9, height = 7)
+```
+
