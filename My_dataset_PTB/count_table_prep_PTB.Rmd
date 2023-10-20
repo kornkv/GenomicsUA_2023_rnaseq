@@ -7,7 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_knit$set(root.dir = "/home/kate/Genomics_UA/my_data_sets/PTB/")
+knitr::opts_knit$set(root.dir = "/home/kate/github/GenomicsUA_2023_rnaseq/My_dataset_PTB")
+setwd("/home/kate/github/GenomicsUA_2023_rnaseq/My_dataset_PTB")
 ```
 
 ```{r}
@@ -22,13 +23,13 @@ library(tximport)
 
 #upload metadata and count_table
 metadata_table <- read.csv("ptb_metadata_table.csv")
-counts_tsv <- "./counts.tsv"
+counts_tsv <- "./counts_ptb.tsv"
 if (file.exists(counts_tsv)){
-    counts <- read_tsv(counts_tsv) %>% column_to_rownames("ensembl_gene_id")
+    counts <- read_tsv(counts_tsv) 
 }else{
     files <- fs::dir_ls(path = "./geo_inp", glob = "*quant.sf.txt")
     counts <- readr::read_tsv(files, id = "path", col_names = T, col_select = c("Name", "NumReads"))
-    colnames(counts)<-c("path","ensembl_gene_id", "raw_counts")
+    colnames(counts)<-c("path","ensembl_tr_id", "raw_counts")
     df_split <- str_split_fixed(counts$path, "_", 3) %>% as.data.frame()
     counts$sample <- df_split$V2 
     counts <- counts %>% 
@@ -39,7 +40,7 @@ if (file.exists(counts_tsv)){
 }
 
 #remove low counts from analysis and rownames_to_column
-counts <- counts[which(rowSums(counts)>10),]%>% rownames_to_column("ensembl_transcript_id")
+counts <- counts[rowSums(counts[sapply(counts, is.numeric)]) > 10, ] 
 
 #checking if unique
 counts %>%unique() 
@@ -48,25 +49,17 @@ counts %>%unique()
 
 ```{r}
 #remove info after dot (remove version of transcropt ID)
-counts$ensembl_transcript_id <- gsub("\\.\\d+$", "", counts$ensembl_transcript_id)
-keytypes(org.Mm.eg.db)
+counts$ensembl_tr_id <- gsub("\\.\\d+$", "", counts$ensembl_tr_id)
 
-#mapped_id <- mapIds(org.Mm.eg.db, counts$ensembl_transcript_id, "SYMBOL", "ENSEMBLTRANS")
-#mapped_id <- mapped_id %>% as.data.frame()%>%  tibble::rownames_to_column("ensembl_transcript_id") %>%   rename(SYMBOL = ".")
+ensembl <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+listAttributes(ensembl)
 
-mart <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
-atr <- listAttributes(mart)
-listDatasets(mart)
-?useMart
 
 biomart_list <- getBM(filter="ensembl_transcript_id",
-                      attributes = c("ensembl_transcript_id", "hgnc_trans_name", "transcript_biotype",
+                      attributes = c("ensembl_transcript_id", "mgi_symbol","transcript_biotype",
                                      "description"),
-                      values = counts$ensembl_transcript_id, mart = mart)
+                      values = counts$ensembl_tr_id, mart = ensembl)
 
-
-
-select(org.Mm.eg.db, keys= keys(org.Mm.eg.db, keytype="ENSEMBL") , columns=c("SYMBOL","ENSEMBLTRANS"), keytype="ENSEMBL")
 ```
 
 ```{r}
