@@ -1,0 +1,68 @@
+---
+title: "deseq_PTB"
+author: "KN"
+date: "2023-10-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "/home/kate/github/GenomicsUA_2023_rnaseq/My_dataset_PTB")
+setwd("/home/kate/github/GenomicsUA_2023_rnaseq/My_dataset_PTB")
+
+library(DESeq2)
+library(DEGreport)
+library(tidyverse)
+library(EnhancedVolcano)
+
+load("txi_metadata_for_deseq2.rdata")
+```
+
+```{r}
+dds <- DESeqDataSetFromTximport(txi, metadata_table , ~brain_part+time)
+dds_lrt <- DESeq(dds, test = "LRT", reduced = ~ 1)
+lrt_genes <- results(dds_lrt) %>% as.data.frame() %>% filter(padj < 0.01)
+lrt_subset <- lrt_genes %>% arrange(padj) %>% head(n = 1000)
+lrt_subset <- lrt_subset %>% tibble::rownames_to_column("X")
+matrix_lrt <- assay(dds_lrt)[lrt_subset$X, ]
+matrix_lrt <- varianceStabilizingTransformation(matrix_lrt)
+
+gene_clusters <- degPatterns(matrix_lrt, metadata = metadata_table, time = "time", col = NULL)
+ggsave("outputs/clusters_lrt.pdf", gene_clusters$plot, device = "pdf", width = 9, height = 7)
+dds_lrt
+structure(dds_lrt)
+
+matrix_lrt_subset_cortical <- assay(dds_lrt)[lrt_subset$X, ]
+matrix_lrt_subset_cortical <- varianceStabilizingTransformation(matrix_lrt)
+
+gene_clusters <- degPatterns(matrix_lrt, metadata = metadata_table, time = "time", col = NULL)
+```
+
+
+```{r}
+dds <- DESeqDataSetFromTximport(txi, metadata_table , ~brain_part+time)
+dds <- DESeq(dds, test = "Wald")
+resultsNames(dds)
+```
+
+
+```{r}
+results(dds, contrast = c("time","4","0"))%>% as.data.frame() %>% tibble::rownames_to_column("gene") %>% filter(padj<0.05)
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+

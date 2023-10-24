@@ -42,7 +42,7 @@ tx2gene_mouse <- select(txdb_mouse, k_mouse, "GENEID", "TXNAME") #only 33 lines
 head(tx2gene_mouse)
 
 #custom tx2gene
-tx2gene_mouse_c <- dplyr::select(as.data.frame(biomart_list), TXNAME = ensembl_transcript_id, GENEID = ensembl_gene_id)
+tx2gene_mouse_c <- dplyr::select(as.data.frame(biomart_list), TXNAME = ensembl_transcript_id, GENEID = mgi_symbol)
 head(tx2gene_mouse_c) #much better
 
 txi <- tximport(files, type = "salmon", tx2gene = tx2gene_mouse_c, ignoreTxVersion=T)
@@ -51,7 +51,7 @@ head(txi$counts)
 class(metadata_table)
 rownames(metadata_table) == colnames(txi$counts)
 
-metadata_table$replicate <- as.factor(c("A","B","A","B","A","B","A","B","A","B","A","B"))
+metadata_table$replicate <- as.factor(metadata_table$replicate)
 metadata_table$time <-  as.factor(metadata_table$time)
 
 dds <- DESeqDataSetFromTximport(txi, metadata_table , ~1)
@@ -83,5 +83,7 @@ matrix_correlations <- cor(counts_vst_filtered)
 clustering <- pheatmap(matrix_correlations, annotation = metadata_table, show_rownames = TRUE,
          show_colnames = FALSE)
 ggsave("outputs/clustering.pdf", clustering, device = "pdf", width = 9, height = 7)
+
+save(txi, metadata_table, file = "txi_metadata_for_deseq2.rdata")
 ```
 
